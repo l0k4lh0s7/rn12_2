@@ -1,0 +1,59 @@
+{
+    "notificationsStudy": {
+      "bsonType": "array",
+      "items": {
+        "bsonType": "object",
+        "title": "NotificationsStudyCourse",
+        "properties": {
+          "id": {
+            "bsonType": "string"
+          },
+          "title": {
+            "bsonType": "string"
+          },
+          "body": {
+            "bsonType": "string"
+          },
+          "isActive": {
+            "bsonType": "boolean"
+          },
+          "repetitionCount": {
+            "bsonType": "int"
+          },
+          "notifications": {
+            "bsonType": "array",
+            "items": {
+              "bsonType": "object",
+              "title": "CourseNotification",
+              "properties": {
+                  "fireHour": {
+                      "bsonType": "int"
+                  },
+                  "fireMinute": {
+                    "bsonType": "int"
+                  },
+                  "notificationId": {
+                    "bsonType": "int"
+                  }
+              }
+            }
+          },
+          "isRandomTime": {
+            "bsonType": "boolean"
+          },
+          "randomTimeRange": {
+            "bsonType": "object",
+            "title": "RandomTimeRange",
+            "properties": {
+                "start": {
+                    "bsonType": "date"
+                },
+                "end": {
+                    "bsonType": "date"
+                }
+            }
+          }
+        }
+      }
+    }
+  }
