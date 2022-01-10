@@ -273,7 +273,7 @@ const Calendar = ({
     deleteExpired ? handleShowTasks() : null;
     console.log(deleteExpired);
   }, [deleteExpired]);
-  console.log('el expired en calendar', deleteExpired);
+
   return (
     <View style={{alignItems: 'center'}}>
       <View style={styles.container}>

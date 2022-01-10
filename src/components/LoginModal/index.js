@@ -89,7 +89,7 @@ const LoginModal = (props) => {
       const validateRes = await anonymousUser.functions['validateUserData'](userData);
       if (validateRes.status !== 'success'){
         if (anonymousUser && anonymousUser.isLoggedIn){
-          await anonymousUser.logOut(); 
+          await anonymousUser.logOut();
         }
         setRealmApp(getRealmApp());
         setRealm(await getRealm());

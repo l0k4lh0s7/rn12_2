@@ -10,7 +10,7 @@ import {
   StyleSheet,
   Animated,
   Platform,
-  AppState,
+  AppState
 } from 'react-native';
 
 import FlatListTasks from './flatlistTasks';
@@ -71,24 +71,6 @@ import ReactNativeAN from 'react-native-alarm-notification';
 const size = responsive();
 
 const Task = props => {
-  const deleteAlarms = async alarmsArr => {
-    alarmsArr.map(alarm => ReactNativeAN.deleteAlarm(parseInt(alarm.id)));
-  };
-  useEffect(async () => {
-    const alarms = await ReactNativeAN.getScheduledAlarms();
-    console.log('todas las NOTISS:____', alarms, alarms.length);
-    // deleteAlarms(alarms)
-  }, []);
-  // return (<View></View>);
-  // useEffect(() => {
-  //   const timer = BackgroundTimer.setTimeout(() => {
-  //     BackgroundTimer.setInterval(() => {
-  //       console.log('cce');
-  //     }, 3000);
-  //   }, 5000);
-
-  // BackgroundTimer.clearTimeout(timer);
-  // }, []);
   const {colors} = useTheme();
   const {realmApp, setRealmApp, realm, setRealm} = useContext(RealmContext);
   const navigation = useNavigation();
@@ -102,7 +84,7 @@ const Task = props => {
 
   const [userSubtasks, setUserSubtasks] = useState([]);
 
-  //MODAL CREATE & UPDATE TASK STATES
+  // MODAL CREATE & UPDATE TASK STATES
   const [inputNameTask, setInputNameTask] = useState('');
   const [selectedColor, setSelectedColor] = useState('#2ED27C');
   const [alarm, setAlarm] = useState(false);
@@ -127,6 +109,7 @@ const Task = props => {
   const [shotAnimation, setShotAnimation] = useState(false);
 
   const [swipeableTasksOn, setSwipeableTasksOn] = useState(false);
+  const [completedTasksTimer, setCompletedTasksTimer] = useState(null);
 
   const createTaskrefBottomModalTEST = useRef();
   const routineBottomModalRef = useRef();
@@ -137,6 +120,79 @@ const Task = props => {
   const tasksOpacity = useRef(new Animated.Value(0)).current;
 
   const {deleteExpired, soundDone} = useContext(SettingsOptionsContext);
+
+  const clearTaskAlarms = (alarmNotifIds) => {
+    for (let i = 0, len = alarmNotifIds.length; i < len; i++) {
+      try {
+        ReactNativeAN.deleteAlarm(alarmNotifIds[i]);
+      } catch (error) {
+        console.info('ERR REMOVING ALARM =>', error, 'ID:', alarmNotifIds[i]);
+      }
+    }
+    if (realm) realm.write(() => { alarmNotifIds = []});
+  }
+
+  const handleCompletedTasks = async (shouldClearAlarms) => {
+    const dateTime = new Date();
+    const currentDay = dateTime.getDate();
+    const currentMonth = dateTime.getMonth();
+    const currentHour = dateTime.getHours();
+    const currentMinutes = dateTime.getMinutes();
+
+    if (realm) {
+      const completedTasks = realm.objects('Task')
+        .filtered(
+          `${shouldClearAlarms ? '' : '(done == false) &&'}
+          (
+            (soundDay < ${currentDay} || soundMonth < ${currentMonth})
+            || (
+                (
+                    soundDay == ${currentDay} && soundMonth == ${currentMonth}
+                  )
+                  &&
+                  (
+                    soundHour < ${currentHour}
+                  )
+                )
+            || (
+                  (
+                    soundDay == ${currentDay} && soundMonth == ${currentMonth}
+                  )
+                    && 
+                  (
+                    (soundHour == ${currentHour}) && (soundMinute <= ${currentMinutes})
+                  )
+                )
+          )
+        `,
+        ).snapshot();
+      if (completedTasks.length > 0) {
+        for (let i = 0, len = completedTasks.length; i < len; i++) {
+          if (shouldClearAlarms) clearTaskAlarms(completedTasks[i].alarmNotifIds);
+          realm.write(() => { completedTasks[i].done = true });
+        }
+        setChangeDataFlatlistTasks(!changeDataFlatlistTasks);
+      }
+    }
+  }
+  
+  const handleAppStateChange = (nextAppState) => {
+    if (nextAppState === 'active') {
+      handleCompletedTasks(true);
+      setCompletedTasksTimer(
+        completedTasksTimer ? completedTasksTimer : setInterval(() => { handleCompletedTasks(false) }, 500)
+      );
+    } else if (completedTasksTimer !== null) {
+      clearInterval(completedTasksTimer);
+      setCompletedTasksTimer(null);
+    }
+  }
+
+  useEffect(() => {
+    handleAppStateChange('active');
+    const handleAppState = AppState.addEventListener('change', handleAppStateChange);
+    return () => { handleAppState.remove() }
+  }, []);
 
   getSettingsData('sortSelected', value => {
     setSelectorSort(value);
@@ -188,25 +244,6 @@ const Task = props => {
     );
   };
 
-  let handleCompletedTasksInterval = null;
-  const handleAppStateChange = nextAppState => {
-    if (nextAppState === 'active') {
-      handleCompletedTasksInterval = handleCompletedTasksInterval
-        ? handleCompletedTasksInterval
-        : setInterval(handleCompletedTasks, 500);
-    } else if (handleCompletedTasksInterval !== null) {
-      clearInterval(handleCompletedTasksInterval);
-    }
-  };
-
-  useEffect(() => {
-    const handleAppState = AppState.addEventListener(
-      'change',
-      handleAppStateChange,
-    );
-    return _ => handleAppState.remove();
-  }, []);
-
   useEffect(() => {
     const handleGetRoutines = async () => {
       if (realm && isLoggedIn(realmApp)) {
@@ -218,7 +255,6 @@ const Task = props => {
 
         setUserRoutines(data ? routines_with_tasks : []);
       }
-      console.log('TRAJE RUTINAS');
     };
     handleGetRoutines();
   }, []);
@@ -235,7 +271,6 @@ const Task = props => {
     subtArr,
     mAlarmNotifIds,
   ) => {
-    console.log('el subtarr en crear tarea de rutina', subtArr, typeof subtArr);
     try {
       const data = {
         _id: ObjectId(),
@@ -263,7 +298,7 @@ const Task = props => {
         userID: realmApp.currentUser ? realmApp.currentUser.id : 'unknownUser',
       };
 
-      const permissionCallback = mData => {
+      const permissionCallback = (mData) => {
         /* Save task */
         if (realm) {
           realm.write(() => {
@@ -335,7 +370,6 @@ const Task = props => {
     subtArr,
     oldAlarmNotifIds,
   ) => {
-    console.info('ALL TASKS ->', realm.objects('Task'));
     return;
     try {
       const updatedTaskData = {
@@ -737,10 +771,6 @@ const Task = props => {
                 subtasksArr,
                 mAlarmNotifIds,
               );
-              console.log(filt);
-              // console.log('m', m);
-              // console.log('icno', icn);
-              // console.log('syb', subtasksArr);
             }}
             editModal={false}
             passCloseModal={value => {
@@ -815,7 +845,6 @@ const Task = props => {
   useEffect(() => {
     const handleShowTasks = async () => {
       if (realm && isLoggedIn(realmApp)) {
-        console.log('AQIIIII', realm.path);
         const data = realm.objects('Task');
 
         setUserTasks(
@@ -880,71 +909,11 @@ const Task = props => {
         ? realm.write(() => {
             realm.delete(expiredTasks);
           })
-        : console.log('no hay');
-    }
-  };
-
-  const clearTaskAlarms = alarmNotifIds => {
-    for (let i = 0, len = alarmNotifIds.length; i < len; i++) {
-      try {
-        ReactNativeAN.deleteAlarm(alarmNotifIds[i]);
-      } catch (error) {
-        console.info('ERR REMOVING ALARM =>', error, 'ID:', alarmNotifIds[i]);
-      }
-    }
-  };
-
-  const handleCompletedTasks = async () => {
-    const dateTime = new Date();
-    const currentDay = dateTime.getDate();
-    const currentMonth = dateTime.getMonth();
-    const currentHour = dateTime.getHours();
-    const currentMinutes = dateTime.getMinutes();
-
-    if (realm) {
-      const completedTasks = realm
-        .objects('Task')
-        .filtered(
-          `(done == false)
-            &&
-          (
-            (soundDay < ${currentDay} || soundMonth < ${currentMonth})
-            || (
-                (
-                    soundDay == ${currentDay} && soundMonth == ${currentMonth}
-                  )
-                  &&
-                  (
-                    soundHour < ${currentHour}
-                  )
-                )
-            || (
-                  (
-                    soundDay == ${currentDay} && soundMonth == ${currentMonth}
-                  )
-                    && 
-                  (
-                    (soundHour == ${currentHour}) && (soundMinute <= ${currentMinutes})
-                  )
-                )
-          )
-        `,
-        )
-        .snapshot();
-      if (completedTasks.length > 0) {
-        realm.write(() => {
-          for (let i = 0, len = completedTasks.length; i < len; i++) {
-            completedTasks[i].done = true;
-            clearTaskAlarms(completedTasks[i].alarmNotifIds);
-          }
-        });
-        setChangeDataFlatlistTasks(!changeDataFlatlistTasks);
-      }
+        : null
     }
   };
 
   useEffect(() => {
-    console.log('D EXP T:', deleteExpired);
     deleteExpired ? handleDeleteExpiredTasks() : null;
   }, [deleteExpired, soundDone]);
 

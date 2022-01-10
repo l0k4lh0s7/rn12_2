@@ -425,7 +425,6 @@ export const storeSettingsEncryptedData = async (storageKey, value) => {
 export const getSettingsEncryptedData = async (storageKey, callback) => {
   try {
     const foundValue = await EncryptedStorage.getItem(storageKey);
-    console.log('valor encontrado:', foundValue);
     callback(foundValue);
   } catch (error) {
     console.log('ERR', error);
@@ -458,7 +457,6 @@ export const storeSettingsData = async (storageKey, value) => {
 export const getSettingsData = async (storageKey, callback) => {
   try {
     const foundValue = await AsyncStorage.getItem(storageKey);
-    console.log('valor encontrado:', foundValue);
     callback(foundValue);
   } catch (error) {
     console.log('ERR', error);

@@ -74,7 +74,6 @@ export const getRealm = async () => {
 
   const realmApp = getRealmApp();
   const isConnected = await isNetworkAvailable();
-  console.log('isNetworkAvailable ->', isConnected);
   const config = isLoggedIn(realmApp)
     ? {
         schema: schemas,

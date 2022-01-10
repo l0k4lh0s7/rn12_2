@@ -88,15 +88,12 @@ const FlatlistTasks = ({
 
   const tasksOpacity = useRef(new Animated.Value(0)).current;
 
-  console.log('DE OTRO????', other_user_routine);
-
   const handleAnimation = () => {
     setShotAnimation(true);
     handleSound(DoneTaskSound);
   };
 
   useEffect(() => {
-    console.log('TASK TO UP 1RO__', taskToUpdate);
     Animated.sequence([
       Animated.timing(tasksOpacity, {
         toValue: 0,
@@ -109,8 +106,6 @@ const FlatlistTasks = ({
         duration: 400,
       }),
     ]).start();
-    // flatlistData.map((item) => console.log('iem en fldt', item));
-    // console.log(flatlistData);
   }, [tasksOpacity, flatlistData, deletedTask]);
 
   const handleUpdateAndSaveTask = async (
@@ -125,13 +120,8 @@ const FlatlistTasks = ({
     subtArr,
     oldAlarmNotifIds,
   ) => {
+    const foundTaskToUpdate = realm.objectForPrimaryKey('Task', taskToUpdate);
     
-    console.log('_id', taskToUpdate);
-
-    const foundTaskToUpdate = flatlistData.find(
-      task => task.id === taskToUpdate,
-    );
-
     console.log('FOOOOOUND___', foundTaskToUpdate);
 
     if (!foundTaskToUpdate){
@@ -140,11 +130,8 @@ const FlatlistTasks = ({
     }
 
     try {
-      const permissionCallback = mData => {
+      const permissionCallback = (mData) => {
         realm.write(() => {
-          // let foundTaskToUpdate = realm.create('Task', mData, 'modified');
-          // subtArr.map(item => foundTaskToUpdate.subtasks.push(item));
-          
           if (mData){
             foundTaskToUpdate.alarmNotifIds = mData.alarmNotifIds;
           }
@@ -182,7 +169,7 @@ const FlatlistTasks = ({
       }
 
       const updatedTaskData = {
-        id: taskToUpdate,
+        _id: ObjectId(taskToUpdate),
         alarmNotifIds: oldAlarmNotifIds, 
         name: t,
         color: c,
@@ -329,7 +316,7 @@ const FlatlistTasks = ({
     // setUserTasks(data);
   };
 
-  const handleDeleteTaskInRoutine = taskId => {
+  const handleDeleteTaskInRoutine = (taskId) => {
     try {
       console.log('id....', routine_id);
       realm.write(() => {
@@ -608,7 +595,8 @@ const FlatlistTasks = ({
           }>
           <TouchableOpacity
             onPress={() => {
-              setTaskToUpdate(item.id);
+              console.info(item)
+              setTaskToUpdate(item._id);
               setInputNameTask(item.name);
               setTaskAlarmNotifIds(item.alarmNotifIds);
               setSelectedColor(item.color);
